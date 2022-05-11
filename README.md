@@ -31,9 +31,9 @@ The output will printed in the screen, indicating the results for each iteration
 It means that ``GAlignment`` found that taking the sequences from the family mir-30 which belongs from Vertebrates species, restricting the alignment for sequences showing 50% identity with at least 40% family-sequences and selecting those sequences from the _normal_ and not from the _high confidence_ set.
 
 The result is in the correspondent file:
-   
-   less -S MIPF0000005_normal_Vertebrata_50.stk
+    
+    less -S MIPF0000005_normal_Vertebrata_50.stk
 
 In terms of fitness, the behaviour throught this run can be visualized as follows:
 
-![](http://url/to/img.png)
+![MIPF0000005](https://github.com/cavelandiah/GAlignment/blob/main/MIPF0000005.png)
