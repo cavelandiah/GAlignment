@@ -37,7 +37,7 @@ toolbox = base.Toolbox()
 # Variable codification. Meaning and limits:  <10-11-21, cavelandiah> #
 MODE_MIN, MODE_MAX = 0, 1  # Mode: normal = 0, high = 1
 CLADE_MIN, CLADE_MAX = 0, 3  # Clade = Metazoa =0, Vertebrata=1, Mammalia=2, Primates=3
-CUTOFF_MIN, CUTOFF_MAX = 1, 4  # 101=0,100=1,90=2,80=3,70=4
+CUTOFF_MIN, CUTOFF_MAX = 0, 4  # 101=0,100=1,90=2,80=3,70=4
 IND_SIZE = 1  # Number of repetitions
 
 # Register variables = alias, function_to_alias
@@ -408,7 +408,7 @@ toolbox.register("select", tools.selRoulette)
 toolbox.register("evaluate", evaluate, family, output_folder, output_folder_complete, logfolder, taxonomy, quality, mapping_file)
 
 # Population and start fitness
-pop = toolbox.population(n=5)
+pop = toolbox.population(n=10)
 fitnesses = list(map(toolbox.evaluate, pop))
 for ind, fit in zip(pop, fitnesses):
     ind.fitness.values = fit
@@ -475,7 +475,7 @@ while switch < 1 and g < 20:
     #print("  Avg %s" % mean)
     #print("  Std %s" % std)
     newline = ",".join(winnerTr)
-    print("Iteration: "+str(g)+" "+str(max(fits))+" "+str(newline)+" "+str(fits))
+    print(str(g)+" "+str(max(fits))+" "+str(newline)+" "+str(fits))
     logs.write(str(g)+" "+str(newline)+" "+str(maximum)+"\n")
     selected_winner.append(winnerTr)
     # Here test if selected is the winner along 5 iterations
