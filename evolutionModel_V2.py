@@ -2,6 +2,7 @@
 
 '''
 ./evolutionModel_V2.py $family $workfolder $logfolder
+./evolutionModel_V2.py MIPF0000632 Test LOG
 '''
 import os
 import os.path
@@ -402,12 +403,12 @@ hairpin_fasta = "hairpin-metazoa.fa"
 
 toolbox.register("mate", crossVector)
 toolbox.register("mutate", mutVector)  # , (toolbox.attr_int1, toolbox.attr_int2, toolbox.attr_int3))
-toolbox.register("select", tools.selTournament, tournsize=39)
-# toolbox.register("select", tools.selRoulette)
+#toolbox.register("select", tools.selTournament, tournsize=2)
+toolbox.register("select", tools.selRoulette)
 toolbox.register("evaluate", evaluate, family, output_folder, output_folder_complete, logfolder, taxonomy, quality, mapping_file)
 
 # Population and start fitness
-pop = toolbox.population(n=3)
+pop = toolbox.population(n=5)
 fitnesses = list(map(toolbox.evaluate, pop))
 for ind, fit in zip(pop, fitnesses):
     ind.fitness.values = fit
@@ -473,8 +474,8 @@ while switch < 1 and g < 20:
     #print("  Max %s" % max(fits))
     #print("  Avg %s" % mean)
     #print("  Std %s" % std)
-    print("Iteration: "+str(g)+" "+str(max(fits)))
     newline = ",".join(winnerTr)
+    print("Iteration: "+str(g)+" "+str(max(fits))+" "+str(newline)+" "+str(fits))
     logs.write(str(g)+" "+str(newline)+" "+str(maximum)+"\n")
     selected_winner.append(winnerTr)
     # Here test if selected is the winner along 5 iterations
