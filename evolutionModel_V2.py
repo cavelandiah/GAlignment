@@ -99,9 +99,9 @@ def translate(individual):
                 translation.append("Primates")
         elif i == 2:  #cutoff
             if individual[i] == 0:
-                translation.append("101")
+                translation.append("60")
             elif individual[i] == 1:
-                translation.append("100")
+                translation.append("50")
             elif individual[i] == 2:
                 translation.append("90")
             elif individual[i] == 3:
@@ -222,8 +222,8 @@ def check(list1, val):
         if ((float(x) < float(val)) or (float(x) == float(100))) and (float(x) != float(101)):
             count_no = count_no + 1
     count_no_prop = count_no / n
-    # If proportion of no valid pairwise/repeated seqs is > 0.5. Discard
-    if float(count_no_prop) > float(0.6):
+    # If proportion of no valid pairwise/repeated seqs is > 0.6. Discard
+    if float(count_no_prop) > float(0.7):
         return 0
     else:
         return 1
@@ -432,9 +432,9 @@ for ind, fit in zip(pop, fitnesses):
 g=0
 switch=0
 # Cross child:  <10-11-21, cavelandiah> #
-CXBP=0.7
+CXBP=0.9
 # Mutation in individual:  <10-11-21, cavelandiah> #
-MUTPB=0.8
+MUTPB=0.2
 
 # All fitness for the population:  <10-11-21, cavelandiah> #
 fits = [ind.fitness.values[0] for ind in pop]
