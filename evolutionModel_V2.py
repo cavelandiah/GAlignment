@@ -194,29 +194,66 @@ def stockholm_evaluation(stoFile, clade):
     structure = align.column_annotations['secondary_structure']  # Obtain SStr
     eval_empty = evaluate_if_no_structure(structure)
     if eval_empty == 1:
-        # Here the str is not valid
         return -100
     else:
-        # Look number sequences AND energy
         clade_contr = evaluate_clade(clade) # weight based on clade
         folding_energy = evaluate_energy(stoFile)
         mirna_folding = evaluate_structure(structure) # Negative value if found additional stems in str
-        # old
-        # score = float(number_of_align_sequences) + float(folding_energy) + float(mirna_folding)
         # Here is the fitness score ## EMPIRICAL# See formula:  <10-11-21, cavelandiah> #
         score = float(clade_contr) + (float(number_of_align_sequences)*float(folding_energy)) + float(mirna_folding)
         return score
 
 
-def build_fasta_file(variables, family, sequences, taxonomy, quality, fam_relation):
+def generate_matrix(family, fasta, folder):
+    outmatrix = folder+"/"+family+".distmat"
+    clustalomega_cline = ClustalOmegaCommandline(infile=fasta, percentid=True, distmat_full=True, distmat_out=outmatrix, verbose=False, auto=False, force=True)
+    clustalomega_cline()
+    with open(outmatrix, 'r') as fin:
+        data = fin.read().splitlines(True)
+    with open(outmatrix, 'w') as fout:
+        fout.writelines(data[1:])
+    return outmatrix
+
+def check(list1, val):
+    return(all(x >= val for x in list1))
+
+def generate_valid_identity(matrix_file, cutoff):
+    list = dict()
+    with open(matrix_file, 'r') as infile:
+        for line in infile:
+            line = line.strip()
+            ids = line.split()[0]
+            values = line.split()[1:]
+            values = [float(i) for i in values]
+            if (check(values, float(cutoff))):
+                list[ids] = 1
+            else:
+                continue
+    return list
+
+
+def build_fasta_file(variables, family, sequences, taxonomy, quality, fam_relation, folder):
     mode = variables[0]
     clade = variables[1]
     cutoff = variables[2]
-    seq_dict={}
+    seq_dict = {}
     fasta_seq = SeqIO.parse(open(sequences), 'fasta')
     ids_family = fam_relation[family]
-    #tax_id_selection = ncbi.get_taxid_translator([clade])
+    out_subset = open(folder+"/"+family+"_subset.fa","w")
+    out_subset_name = folder+"/"+family+"_subset.fa"
     for fasta in fasta_seq:
+        name, seq = fasta.description, fasta.seq
+        header = name.split()
+        id_mirbase = header[1]
+        # Check seq in family
+        if id_mirbase in ids_family:
+            out_subset.write(">"+str(name)+"\n"+str(seq)+"\n")
+    out_subset.close()
+    # Play with subset
+    matrix_id = generate_matrix(family, out_subset_name, folder)
+    valid_seqs_id = generate_valid_identity(matrix_id, cutoff)
+    fasta_seq2 = SeqIO.parse(open(sequences), 'fasta')
+    for fasta in fasta_seq2:
         vector_selection = [0, 0, 0]
         name, seq = fasta.description, fasta.seq
         header = name.split()
@@ -226,29 +263,32 @@ def build_fasta_file(variables, family, sequences, taxonomy, quality, fam_relati
         if id_mirbase in ids_family:
             tax_id = ncbi.get_name_translator([infer_specie])
             tax_id = tax_id.get(infer_specie)[0]
-            #lineage = ncbi.get_lineage(tax_id[0])
-
             # Lineage selection
             if str(tax_id) in taxonomy.keys():
                 lineage = taxonomy.get(str(tax_id))
                 if clade.lower() in lineage.lower():
                     vector_selection[0] = 1
             # High quality
-            if id_mirbase in quality:
-                vector_selection[1] = 1
-            vector_string = ''.join(str(e) for e in vector_selection)
-            seq_dict.setdefault(vector_string, []).append(id_mirbase)
-
+        if id_mirbase in quality:
+            vector_selection[1] = 1
+    # Identity selection
+        id_name = header[0]
+        if id_name in valid_seqs_id:
+            vector_selection[2] = 1
+        vector_string = ''.join(str(e) for e in vector_selection)
+        seq_dict.setdefault(vector_string, []).append(id_mirbase)
     # Print selected [1, 1/0, 1 ]
     mode_numb = 0
     if mode == "high":
         mode_numb = 1
-    # Temporal
-    subset = [1, mode_numb, 0]
+    subset = [1, mode_numb, 1]
     string_subset = "".join(str(f) for f in subset)
-    selected = seq_dict[string_subset]
     out_name = "selected.fa"
     out_selected = open(out_name,'w')
+    if string_subset in seq_dict:
+        selected = seq_dict[string_subset]
+    else:
+        return out_name
     fasta_seq2 = SeqIO.parse(open(sequences), 'fasta')
     for fasta in fasta_seq2:
         name, seq = fasta.description, fasta.seq
@@ -259,41 +299,38 @@ def build_fasta_file(variables, family, sequences, taxonomy, quality, fam_relati
     out_selected.close()
     return out_name
 
+def doalifold(alnfile,outdir,short):
+    try:
+        if os.path.isfile(outdir+"/"+short+".stk"):
+            output = outdir+"/"+short+".stk"
+            return output
+        else:
+            first = ["RNAalifold", "--noPS", "-q", "-r", "--aln-stk="+short, alnfile]  # -r = RIBOSUM scoring
+            f = subprocess.check_output(first)
+            output = outdir+"/"+short+".stk"
+            return output
+    except Exception:
+       sys.exit()
 
 def evaluate(family, output_folder, output_folder_complete, logfolder, taxonomy, quality, mapping_file, individual):
-    # Evaluate the fitness:  <10-11-21, cavelandiah> #
-    # ./validate_miRNA_candidates_V2.pl $family $cutoff $clade miRBaseModels_Metazoa_tunicata $mode
     result = None
+    current = os.getcwd()
     values = translate(individual)
     # Individual meaning:  <10-11-21, cavelandiah> #
     # [mode, clade, cutoff]
-    errortemp = open(logfolder+"/outerrorNOVALID_"+family+"_"+values[1]+"_"+values[2]+"_"+values[0]+".txt", 'w')
-    # outtemp = "./LogsmiRBaseModelsMetazoaJoined/outNOVALID_"+family+"_"+values[1]+"_"+values[2]+"_"+values[0]+".txt"
-    #first = ["./validate_miRNA_candidates_V2.pl", family, values[2], values[1], output_folder, values[0], output_folder_complete+"/.."]
-    out_file = str(family)+".sto"
-    fasta_file_subset = build_fasta_file(values, family, hairpin_fasta, taxonomy, quality, mapping_file)
-    # Clustal Omega
-    clustalomega_cline = ClustalOmegaCommandline(infile=fasta_file_subset, outfile=out_file, outfmt='st', verbose=False, auto=False)
-    clustalomega_cline()
-    #sto_file_to_create = output_folder_complete+"/"+family+"_"+values[1]+"_"+values[2]+"_"+values[0]+"/Output/"+family+".out/"+family+".stk"
-    if os.path.isfile(out_file):
-        result = out_file
+    out_file = str(family)+"_"+str(values[0])+"_"+str(values[1])+"_"+str(values[2])+".sto"
+    short = str(family)+"_"+str(values[0])+"_"+str(values[1])+"_"+str(values[2])
+    fasta_file_subset = build_fasta_file(values, family, hairpin_fasta, taxonomy, quality, mapping_file, current)
+    if os.path.getsize(fasta_file_subset) > 0:
+        clustalomega_cline = ClustalOmegaCommandline(infile=fasta_file_subset, outfile=out_file, outfmt='st', verbose=False, auto=False, force=True)
+        clustalomega_cline()
     else:
-        #folder = output_folder_complete+"/"+family+"_"+values[1]+"_"+values[2]+"_"+values[0]+"/Output/"+family+".out/"
-        #if os.path.isdir(folder) and len(os.listdir(folder)) == 0:
-        result = 'NA'
-        #else:
-        #    result = subprocess.check_output(first, stderr=errortemp)
-    #score = None
-    #if not isinstance(result, str):
-    #    result = result.decode("utf-8")
-    if re.search(r'NA', result):
-        # The evaluation failed, penalize it!
         score = -1000
-    else:
-        # Get evaluation over sto file in 'result' variable
+    if os.path.isfile(out_file):
+        result = doalifold(out_file, current,short)
         score = stockholm_evaluation(result, values[1])
-    errortemp.close()
+    else:
+        score = -1000
     return score,
 
 
@@ -321,7 +358,7 @@ def crossVector(child1, child2):
 
 
 def analyse_winners(vector):
-    limit = 5
+    limit = 10
     if len(vector) < limit:
         return 0
     elif len(vector) == limit:
@@ -370,7 +407,7 @@ toolbox.register("select", tools.selTournament, tournsize=39)
 toolbox.register("evaluate", evaluate, family, output_folder, output_folder_complete, logfolder, taxonomy, quality, mapping_file)
 
 # Population and start fitness
-pop = toolbox.population(n=40)
+pop = toolbox.population(n=3)
 fitnesses = list(map(toolbox.evaluate, pop))
 for ind, fit in zip(pop, fitnesses):
     ind.fitness.values = fit
@@ -436,10 +473,11 @@ while switch < 1 and g < 20:
     #print("  Max %s" % max(fits))
     #print("  Avg %s" % mean)
     #print("  Std %s" % std)
-    #print(fits)
+    print("Iteration: "+str(g)+" "+str(max(fits)))
     newline = ",".join(winnerTr)
     logs.write(str(g)+" "+str(newline)+" "+str(maximum)+"\n")
     selected_winner.append(winnerTr)
+    # Here test if selected is the winner along 5 iterations
     switch = analyse_winners(selected_winner)
     if maximum < 0:
         logs.write("No viable alignment")
