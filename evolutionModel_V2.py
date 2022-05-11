@@ -10,7 +10,6 @@ import sys
 import subprocess
 import random
 import re
-#import RNA
 
 from Bio import SeqIO
 from Bio import AlignIO
@@ -31,15 +30,12 @@ else:
 # In this case I'd like to maximise the score (fitness function)
 creator.create("FitnessMax", base.Fitness, weights=(1.0,))
 creator.create("Individual", list, fitness=creator.FitnessMax)
-
 toolbox = base.Toolbox()
-
 # Variable codification. Meaning and limits:  <10-11-21, cavelandiah> #
 MODE_MIN, MODE_MAX = 0, 1  # Mode: normal = 0, high = 1
 CLADE_MIN, CLADE_MAX = 0, 3  # Clade = Metazoa =0, Vertebrata=1, Mammalia=2, Primates=3
 CUTOFF_MIN, CUTOFF_MAX = 0, 4  # 101=0,100=1,90=2,80=3,70=4
 IND_SIZE = 1  # Number of repetitions
-
 # Register variables = alias, function_to_alias
 toolbox.register("attr_int1", random.randint, MODE_MIN, MODE_MAX)
 toolbox.register("attr_int2", random.randint, CLADE_MIN, CLADE_MAX)
@@ -78,7 +74,6 @@ def index_families(file_fam):
         fam_dict.setdefault(fields[0], []).append(fields[2])
     return fam_dict
 
-
 def translate(individual):
     # Translate the meaning of the individual into parameters of evaluation program
     translation = []
@@ -110,7 +105,6 @@ def translate(individual):
                 translation.append("70")
     return translation
 
-
 def evaluate_if_no_structure(str):
     # Evaluate if SS_consensus has structure
     str_len = len(str)
@@ -122,7 +116,6 @@ def evaluate_if_no_structure(str):
     if str_len == count_gaps:
         return 1
     return 0
-
 
 def file_len(fname):
     # Account number of species + number of sequences
@@ -139,10 +132,8 @@ def file_len(fname):
                 species[spe] = 1
                 lines_number = lines_number + 1
     number_species = len(species.keys())
-    # score = (1 / int(lines_number) / int(number_species))
     score = number_species + lines_number
     return score
-
 
 def evaluate_energy(stofile):
     # Evaluate folding energy of the sto file
@@ -155,17 +146,11 @@ def evaluate_energy(stofile):
     energy = float(energy)*-1  # Positive to valid energies
     return energy
 
-
 def evaluate_structure(structure):
-    '''
-    Evaluate the presence of ...((((...))))..
-    penalyze the presence of ..(((())(...))((.))).
-    '''
     pattern = "\)\.*\("
     parts_str = len(re.findall(pattern, structure))
     score = int(parts_str) * -10
     return score
-
 
 def evaluate_clade(clade):
     # Reward some clades in order to have more diversity:  <10-11-21, cavelandiah> #
@@ -182,16 +167,13 @@ def evaluate_clade(clade):
         score = 0
     return score
 
-
 def stockholm_evaluation(stoFile, clade):
-    # Evaluate STO alignment:  <10-11-21, cavelandiah> #
     if not os.path.isfile(stoFile):
         return -100
     number_of_align_sequences = file_len(stoFile)
     if number_of_align_sequences == 0:
         return -100
     align = AlignIO.read(stoFile, "stockholm")
-    # Obtain information from secondary structure
     structure = align.column_annotations['secondary_structure']  # Obtain SStr
     eval_empty = evaluate_if_no_structure(structure)
     if eval_empty == 1:
@@ -200,10 +182,8 @@ def stockholm_evaluation(stoFile, clade):
         clade_contr = evaluate_clade(clade) # weight based on clade
         folding_energy = evaluate_energy(stoFile)
         mirna_folding = evaluate_structure(structure) # Negative value if found additional stems in str
-        # Here is the fitness score ## EMPIRICAL# See formula:  <10-11-21, cavelandiah> #
         score = float(clade_contr) + (float(number_of_align_sequences)*float(folding_energy)) + float(mirna_folding)
         return score
-
 
 def generate_matrix(family, fasta, folder):
     outmatrix = folder+"/"+family+".distmat"
@@ -222,12 +202,10 @@ def check(list1, val):
         if ((float(x) < float(val)) or (float(x) == float(100))) and (float(x) != float(101)):
             count_no = count_no + 1
     count_no_prop = count_no / n
-    # If proportion of no valid pairwise/repeated seqs is > 0.6. Discard
     if float(count_no_prop) > float(0.7):
         return 0
     else:
         return 1
-    #return(all(x >= val for x in list1))
 
 def generate_valid_identity(matrix_file, cutoff):
     list = dict()
@@ -246,7 +224,6 @@ def generate_valid_identity(matrix_file, cutoff):
             count = count + 1
     return list
 
-
 def build_fasta_file(variables, family, sequences, taxonomy, quality, fam_relation, folder):
     mode = variables[0]
     clade = variables[1]
@@ -260,11 +237,9 @@ def build_fasta_file(variables, family, sequences, taxonomy, quality, fam_relati
         name, seq = fasta.description, fasta.seq
         header = name.split()
         id_mirbase = header[1]
-        # Check seq in family
         if id_mirbase in ids_family:
             out_subset.write(">"+str(name)+"\n"+str(seq)+"\n")
     out_subset.close()
-    # Play with subset
     matrix_id = generate_matrix(family, out_subset_name, folder)
     valid_seqs_id = generate_valid_identity(matrix_id, cutoff)
     fasta_seq2 = SeqIO.parse(open(sequences), 'fasta')
@@ -274,19 +249,15 @@ def build_fasta_file(variables, family, sequences, taxonomy, quality, fam_relati
         header = name.split()
         infer_specie = header[2]+" "+header[3]
         id_mirbase = header[1]
-        # Check seq in family
         if id_mirbase in ids_family:
             tax_id = ncbi.get_name_translator([infer_specie])
             tax_id = tax_id.get(infer_specie)[0]
-            # Lineage selection
             if str(tax_id) in taxonomy.keys():
                 lineage = taxonomy.get(str(tax_id))
                 if clade.lower() in lineage.lower():
                     vector_selection[0] = 1
-            # High quality
         if id_mirbase in quality:
             vector_selection[1] = 1
-    # Identity selection
         id_name = header[0]
         if id_name in valid_seqs_id:
             vector_selection[2] = 1
@@ -331,8 +302,6 @@ def evaluate(family, output_folder, output_folder_complete, logfolder, taxonomy,
     result = None
     current = os.getcwd()
     values = translate(individual)
-    # Individual meaning:  <10-11-21, cavelandiah> #
-    # [mode, clade, cutoff]
     out_file = str(family)+"_"+str(values[0])+"_"+str(values[1])+"_"+str(values[2])+".sto"
     short = str(family)+"_"+str(values[0])+"_"+str(values[1])+"_"+str(values[2])
     fasta_file_subset = build_fasta_file(values, family, hairpin_fasta, taxonomy, quality, mapping_file, current)
@@ -349,12 +318,7 @@ def evaluate(family, output_folder, output_folder_complete, logfolder, taxonomy,
         score = -1000
     return score,
 
-
 def mutVector(individual, indp, MODE_MIN, MODE_MAX, CLADE_MIN, CLADE_MAX, CUTOFF_MIN, CUTOFF_MAX):
-    # [a, b, c]
-    # a = [0,1]
-    # b = [0,1,2,3]
-    # c = [0,1,2,3,4]
     for i in range(len(individual)):
         # The mutation threshold is the same as defined
         if random.random() < indp:
@@ -366,12 +330,10 @@ def mutVector(individual, indp, MODE_MIN, MODE_MAX, CLADE_MIN, CLADE_MAX, CUTOFF
                 individual[i] = random.randint(CUTOFF_MIN, CUTOFF_MAX)
     return individual,
 
-
 def crossVector(child1, child2):
     new_child1 = [child1[0], child2[1], child1[2]]
     new_child2 = [child2[0], child1[1], child2[2]]
     return new_child1, new_child2
-
 
 def analyse_winners(vector):
     limit = 10
@@ -403,9 +365,6 @@ def analyse_winners(vector):
         elif (uniq_set < 1):
             return 0
 
-# Parameters
-# toolbox.register("mate", tools.cxUniform)
-
 ## Init
 family = sys.argv[1]
 output_folder_complete = sys.argv[2]
@@ -418,7 +377,6 @@ hairpin_fasta = "hairpin-metazoa.fa"
 
 toolbox.register("mate", crossVector)
 toolbox.register("mutate", mutVector)  # , (toolbox.attr_int1, toolbox.attr_int2, toolbox.attr_int3))
-#toolbox.register("select", tools.selTournament, tournsize=2)
 toolbox.register("select", tools.selRoulette)
 toolbox.register("evaluate", evaluate, family, output_folder, output_folder_complete, logfolder, taxonomy, quality, mapping_file)
 
@@ -478,23 +436,13 @@ while switch < 1 and g < 20:
     # Gather all the fitnesses in one list and print the stats
     fits = [ind.fitness.values[0] for ind in pop]
     # STATS of generations:  <10-11-21, cavelandiah> #
-    length = len(pop)
-    mean = sum(fits) / length
-    sum2 = sum(x*x for x in fits)
-    std = abs(sum2 / length - mean**2)**0.5
     maximum = max(fits)
     winner = fits.index(maximum)
     winnerTr = translate(pop[winner])
-    #print("  Min %s" % min(fits))
-    #print("  Max %s" % max(fits))
-    #print("  Avg %s" % mean)
-    #print("  Std %s" % std)
     newline = ",".join(winnerTr)
     print(str(g)+" "+str(max(fits))+" "+str(newline)+" "+str(fits))
     logs.write(str(g)+" "+str(newline)+" "+str(maximum)+"\n")
     selected_winner.append(winnerTr)
-    # Here test if selected is the winner along 5 iterations
     switch = analyse_winners(selected_winner)
     if maximum < 0:
         logs.write("No viable alignment")
-        #sys.exit()
