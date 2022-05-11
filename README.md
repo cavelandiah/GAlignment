@@ -1,7 +1,2 @@
-# GeneticAlgorithmCleanAlign
-GA to clean alignments
-Example in : /scr/k70san/bogota_unal/tunicata_micro_Evolution/Code/miRBase_Annotation/Code/GeneticAlgorithm/evolutionModel_V2_test.sh
-# Out
-TestLet7/ # Alignments
-LogsmiRBaseModelsMetazoaJoined/ # Log miRNA aligner
-LogWriteLet7Spe/ # Result
+# Genetic Algorithm to clean structural alignments
+An important task in homology gene/protein prediction is the identification of candidate molecules in target genomes/sequences. In this case I approached the problem in the construction of structural alignments from homologous sequences.
