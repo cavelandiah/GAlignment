@@ -10,9 +10,10 @@ By default the miRBase database has 178 [sequences](https://www.mirbase.org/summ
 
 Please run as:
 
-    conda install -f geneticalgo.yml
     git clone git@github.com:cavelandiah/GAlignment.git
     cd GAlignment/
+    conda install -f geneticalgo.yml
+    conda activate galignment
     mkdir Test
     mkdir LOG
     ./evolutionModel_V2.py MIPF0000005 Test LOG
