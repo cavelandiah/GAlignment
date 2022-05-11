@@ -216,20 +216,34 @@ def generate_matrix(family, fasta, folder):
     return outmatrix
 
 def check(list1, val):
-    return(all(x >= val for x in list1))
+    count_no = 0
+    n = len(list1) - 1 # n-1 max
+    for x in list1:
+        if ((float(x) < float(val)) or (float(x) == float(100))) and (float(x) != float(101)):
+            count_no = count_no + 1
+    count_no_prop = count_no / n
+    # If proportion of no valid pairwise/repeated seqs is > 0.5. Discard
+    if float(count_no_prop) > float(0.6):
+        return 0
+    else:
+        return 1
+    #return(all(x >= val for x in list1))
 
 def generate_valid_identity(matrix_file, cutoff):
     list = dict()
     with open(matrix_file, 'r') as infile:
+        count = 0
         for line in infile:
             line = line.strip()
             ids = line.split()[0]
             values = line.split()[1:]
-            values = [float(i) for i in values]
-            if (check(values, float(cutoff))):
+            values[count] = float(200) # Change diagonal to 200.0
+            values = [float(i) for i in values] #Convert int -> float
+            if (check(values, float(cutoff)) == 1):
                 list[ids] = 1
             else:
                 continue
+            count = count + 1
     return list
 
 
@@ -327,6 +341,7 @@ def evaluate(family, output_folder, output_folder_complete, logfolder, taxonomy,
         clustalomega_cline()
     else:
         score = -1000
+        return score,
     if os.path.isfile(out_file):
         result = doalifold(out_file, current,short)
         score = stockholm_evaluation(result, values[1])
@@ -408,7 +423,7 @@ toolbox.register("select", tools.selRoulette)
 toolbox.register("evaluate", evaluate, family, output_folder, output_folder_complete, logfolder, taxonomy, quality, mapping_file)
 
 # Population and start fitness
-pop = toolbox.population(n=10)
+pop = toolbox.population(n=5)
 fitnesses = list(map(toolbox.evaluate, pop))
 for ind, fit in zip(pop, fitnesses):
     ind.fitness.values = fit
@@ -419,7 +434,7 @@ switch=0
 # Cross child:  <10-11-21, cavelandiah> #
 CXBP=0.7
 # Mutation in individual:  <10-11-21, cavelandiah> #
-MUTPB=0.1
+MUTPB=0.8
 
 # All fitness for the population:  <10-11-21, cavelandiah> #
 fits = [ind.fitness.values[0] for ind in pop]
@@ -442,7 +457,7 @@ while switch < 1 and g < 20:
             # P(cross both childs < 0.7)
             toolbox.mate(child1, child2)
             del child1.fitness.values
-            del child2.fitness.values
+            #del child2.fitness.values
 
     # Apply mutation on the offsprint
     for mutant in offspring:
@@ -482,4 +497,4 @@ while switch < 1 and g < 20:
     switch = analyse_winners(selected_winner)
     if maximum < 0:
         logs.write("No viable alignment")
-        sys.exit()
+        #sys.exit()
