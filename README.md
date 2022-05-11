@@ -18,4 +18,22 @@ Please run as:
     mkdir LOG
     ./evolutionModel_V2.py MIPF0000005 Test LOG
     
-The output will printed in the screen, indicating at the last line the best structural alignment.
+The output will printed in the screen, indicating the results for each iteration. At the last line the best candidate:
+
+    #iteration best_score best_individual fitness_detail
+    1 838.9000000000001 normal,Mammalia,70 [838.9000000000001, 838.9000000000001, 838.9000000000001, 838.9000000000001, 838.9000000000001]
+    2 838.9000000000001 normal,Mammalia,70 [838.9000000000001, -1000.0, 838.9000000000001, 838.9000000000001, 838.9000000000001]
+    3 2597.5 high,Mammalia,50 [841.32, 838.9000000000001, 838.9000000000001, 2597.5, 838.9000000000001]
+    4 2597.5 high,Mammalia,50 [2597.5, 2597.5, 838.9000000000001, 838.9000000000001, 2597.5]
+    ...
+    20 5954.35 normal,Vertebrata,50 [5954.35, 5954.35, 4249.070000000001, 4244.070000000001, 4244.070000000001]
+
+It means that ``GAlignment`` found that taking the sequences from the family mir-30 which belongs from Vertebrates species, restricting the alignment for sequences showing 50% identity with at least 40% family-sequences and selecting those sequences from the _normal_ and not from the _high confidence_ set.
+
+The result is in the correspondent file:
+   
+   less -S MIPF0000005_normal_Vertebrata_50.stk
+
+In terms of fitness, the behaviour throught this run can be visualized as follows:
+
+![](http://url/to/img.png)
