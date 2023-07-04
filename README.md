@@ -1,59 +1,81 @@
-# Genetic Algorithm to clean structural alignments
-## Context
-An important task in homology gene/protein prediction is the identification of candidate molecules in target genomes/sequences. I approached the construction of structural alignments from homologous sequences, which would serve as reference to build predictive models as covariance models. 
-This task is performed usually by a hand curation, as seen in the Rfam database [Let-7](https://rfam.xfam.org/family/RF00027/alignment?acc=RF00027&format=stockholm&download=0) for multiple ncRNA families.  
+# Genetic Algorithm for Structural Alignment Cleaning
+
+## Introduction
+In the field of homology gene/protein prediction, a crucial task is to identify candidate molecules in target genomes/sequences. This code aims to construct structural alignments from homologous sequences, which can serve as a reference to build predictive models like covariance models. Traditionally, this task involves manual curation, as seen in the Rfam database's alignment of multiple ncRNA families, such as [Let-7](https://rfam.xfam.org/family/RF00027/alignment?acc=RF00027&format=stockholm&download=0).
 
 ## Idea
-This code uses the sequences from the miRBase database, and assembles multiple structural alignments by selecting sequences to build structural alignments using three parameters:
+This code utilizes sequences from the miRBase database to assemble multiple structural alignments. It achieves this by selecting sequences based on three parameters:
 - Species clade
-- Identity of the alignment 
-- Quality of the sequences, based on the miRBase database
+- Alignment identity
+- Sequence quality, determined by the miRBase database
 
-Based on the codification of those parameters as individuals, a genetic algorithm offered the way to iterate over the iteration space and locate local maxima, based on a score function (fitness score). The final output will be the structural alignment that scores a maximum after 20 iterations. It uses mutation, selection and cross functions to generate the children that would be the population after each iteration.  
+Using these parameters as individuals, a genetic algorithm iterates over the solution space and identifies local maxima based on a fitness score function. After 20 iterations, the output will be the structural alignment with the highest score. The algorithm employs mutation, selection, and crossover functions to generate children, which form the population after each iteration.
 
-## Example: Family mir-30 (MIPF0000005)
+## Example: mir-30 Family (MIPF0000005)
 
-By default the miRBase database has 178 [sequences](https://www.mirbase.org/summary.shtml?fam=MIPF0000005). The idea is to identify groups of sequences that are suitable to build the structural alignments that optimize the following features:
-
-- Diverse number of species
+The miRBase database initially contains 178 [sequences](https://www.mirbase.org/summary.shtml?fam=MIPF0000005). The objective is to identify sequence groups suitable for constructing structural alignments that optimize the following features:
+- Diverse range of species
 - Larger alignments
 - Lower folding energy
-- Correct secondary folding, avoiding patters as `"\)\.*\("` inside the stem region of the alignment.
+- Correct secondary folding, avoiding patterns like `"\)\.*\("` within the stem region of the alignment.
 
-## Instalation and environment activation
-To do so, please run as:
+## Installation and Environment Activation
+To run the code, please follow these steps:
 
-    git clone git@github.com:cavelandiah/GAlignment.git
-    cd GAlignment/
-    conda env create -f geneticalgo.yml
-    conda activate galignment
-### Running 
-    mkdir Test
-    mkdir LOG
-    ./evolutionModel_V2.py MIPF0000005 Test LOG
-    
-When ran for the first time it takes longer due update of the NCBITaxa database. The output will printed in the screen, indicating the results for each iteration. At the last line the best candidate:
+1. Clone the repository and navigate to the project directory:
+   ```
+   git clone git@github.com:cavelandiah/GAlignment.git
+   cd GAlignment/
+   ```
 
-    #iteration best_score best_individual fitness_detail
-    1 838.9000000000001 normal,Mammalia,70 [838.9000000000001, 838.9000000000001, 838.9000000000001, 838.9000000000001, 838.9000000000001]
-    2 838.9000000000001 normal,Mammalia,70 [838.9000000000001, -1000.0, 838.9000000000001, 838.9000000000001, 838.9000000000001]
-    3 2597.5 high,Mammalia,50 [841.32, 838.9000000000001, 838.9000000000001, 2597.5, 838.9000000000001]
-    4 2597.5 high,Mammalia,50 [2597.5, 2597.5, 838.9000000000001, 838.9000000000001, 2597.5]
-    ...
-    20 5954.35 normal,Vertebrata,50 [5954.35, 5954.35, 4249.070000000001, 4244.070000000001, 4244.070000000001]
+2. Create the Conda environment using the provided YAML file:
+   ```
+   conda env create -f geneticalgo.yml
+   ```
 
-It means that ``GAlignment`` found that taking the sequences from the family mir-30 which belongs from Vertebrates species, restricting the alignment for sequences showing 50% identity with at least 40% family-sequences and selecting those sequences from the _normal_ and not from the _high confidence_ set.
+3. Activate the created environment:
+   ```
+   conda activate galignment
+   ```
 
-The result is in the correspondent file:
-    
-    less -S MIPF0000005_normal_Vertebrata_50.stk
+## Running the Code
+Execute the following commands in the terminal:
 
-In terms of fitness, the behaviour throught this run can be visualized as follows:
+1. Create the necessary directories:
+   ```
+   mkdir Test
+   mkdir LOG
+   ```
 
-<img src="https://github.com/cavelandiah/GAlignment/blob/main/MIPF0000005.png" alt="drawing" width="350"/>
+2. Run the code for the desired family (e.g., MIPF0000005):
+   ```
+   ./evolutionModel_V2.py MIPF0000005 Test LOG
+   ```
 
-### Code length
-    
-    cat evolutionModel_V2.py | grep -v "^$" | grep -vc "^\#"
-    394
-    
+During the first run, the code may take longer due to the update of the NCBITaxa database. The output will be printed on the screen, showing the results for each iteration. The last line displays the best candidate:
+
+```
+#iteration best_score best_individual fitness_detail
+1 838.9000000000001 normal,Mammalia,70 [838.9000000000001, 838.9000000000001, 838.9000000000001, 838.9000000000001, 838.9000000000001]
+2 838.9000000000001 normal,Mammalia,70 [838.9000000000001, -1000.0, 838.9000000000001, 838.9000000000001, 838.9000000000001]
+3 2597.5 high,Mammalia,50 [841.32, 838.9000000000001, 838.9000000000001, 2597.5, 838.9000000000001]
+4 2597.5 high,Mammalia,50 [2597.5,
+
+ 2597.5, 838.9000000000001, 838.9000000000001, 2597.5]
+...
+20 5954.35 normal,Vertebrata,50 [5954.35, 5954.35, 4249.070000000001, 4244.070000000001, 4244.070000000001]
+```
+
+This output indicates that the "GAlignment" algorithm found the best structural alignment by selecting sequences from the mir-30 family, belonging to Vertebrates species, and restricting the alignment to sequences with at least 50% identity and 40% family-sequences. The chosen sequences are from the "normal" category, excluding those from the "high confidence" set.
+
+The resulting alignment can be found in the corresponding file:
+```
+less -S MIPF0000005_normal_Vertebrata_50.stk
+```
+
+The fitness behavior throughout the run can be visualized in the following graph:
+
+![Fitness Graph](https://github.com/cavelandiah/GAlignment/blob/main/MIPF0000005.png)
+
+## Code Length
+The code consists of 394 lines, excluding empty lines and comments.
